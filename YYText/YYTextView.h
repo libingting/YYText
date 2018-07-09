@@ -15,10 +15,12 @@
 #import <YYText/YYTextParser.h>
 #import <YYText/YYTextLayout.h>
 #import <YYText/YYTextAttribute.h>
+#import <YYText/YYTextSelectionView>
 #else
 #import "YYTextParser.h"
 #import "YYTextLayout.h"
 #import "YYTextAttribute.h"
+#import "YYTextSelectionView.h"
 #endif
 
 @class YYTextView;
@@ -46,6 +48,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)textView:(YYTextView *)textView didTapHighlight:(YYTextHighlight *)highlight inRange:(NSRange)characterRange rect:(CGRect)rect;
 - (BOOL)textView:(YYTextView *)textView shouldLongPressHighlight:(YYTextHighlight *)highlight inRange:(NSRange)characterRange;
 - (void)textView:(YYTextView *)textView didLongPressHighlight:(YYTextHighlight *)highlight inRange:(NSRange)characterRange rect:(CGRect)rect;
+
+/// 这里用于编辑 UIMenuController  改动处
+- (NSArray<UIMenuItem *>*)textViewMenuItems:(YYTextView *)textView selectView:(YYTextSelectionView *)view;
 @end
 
 

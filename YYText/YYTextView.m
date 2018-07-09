@@ -638,6 +638,11 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.01 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             UIMenuController *menu = [UIMenuController sharedMenuController];
             [menu setTargetRect:CGRectStandardize(rect) inView:_selectionView];
+          // 改动处
+            if (self.delegate&&[self.delegate respondsToSelector:@selector(textViewMenuItems:selectView:)]) {
+              menu.menuItems = [self.delegate textViewMenuItems:self selectView:_selectionView];
+            }
+          // end
             [menu update];
             if (!_state.showingMenu || !menu.menuVisible) {
                 _state.showingMenu = YES;
@@ -1303,6 +1308,11 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 - (void)_pasteboardChanged {
     if (_state.showingMenu) {
         UIMenuController *menu = [UIMenuController sharedMenuController];
+      // 改动处
+      if (self.delegate&&[self.delegate respondsToSelector:@selector(textViewMenuItems:selectView:)]) {
+        menu.menuItems = [self.delegate textViewMenuItems:self selectView:_selectionView];
+      }
+      // end
         [menu update];
     }
 }
