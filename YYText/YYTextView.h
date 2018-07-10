@@ -15,7 +15,7 @@
 #import <YYText/YYTextParser.h>
 #import <YYText/YYTextLayout.h>
 #import <YYText/YYTextAttribute.h>
-#import <YYText/YYTextSelectionView>
+#import <YYText/YYTextSelectionView.h>
 #else
 #import "YYTextParser.h"
 #import "YYTextLayout.h"
@@ -49,8 +49,14 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)textView:(YYTextView *)textView shouldLongPressHighlight:(YYTextHighlight *)highlight inRange:(NSRange)characterRange;
 - (void)textView:(YYTextView *)textView didLongPressHighlight:(YYTextHighlight *)highlight inRange:(NSRange)characterRange rect:(CGRect)rect;
 
-/// 这里用于编辑 UIMenuController  改动处
-- (NSArray<UIMenuItem *>*)textViewMenuItems:(YYTextView *)textView selectView:(YYTextSelectionView *)view;
+/// 这里用于编辑 UIMenuController, 反回标题组合  改动处
+/** 这里为菜单展示在标准的UIMenuController */
+- (NSArray<NSString *>*)textView:(YYTextView *)textView menuController:(UIMenuController *)menu selectedTextRange:(YYTextRange *)range itemTitlesShowInView:(YYTextSelectionView *)view;
+/** 选中某个菜单 */
+- (void)textView:(YYTextView *)textView menuController:(UIMenuController *)menu selectedTextRange:(YYTextRange *)range didSelectMenuItemTitle:(NSString *)itemTitle index:(int)index;
+/** 这里控制菜单是否展示出来在不同的情况下 */
+- (BOOL)textView:(YYTextView *)textView menuController:(UIMenuController *)menu selectedTextRange:(YYTextRange *)range innerText:(NSMutableAttributedString *)innerText canShowMenuItemTitle:(NSString *)itemTitle index:(int)index;
+//end
 @end
 
 
@@ -303,6 +309,25 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @property (nonatomic) BOOL allowsCopyAttributedString;
 
+/**
+ 固定的 改动处 系统级别使用上面的数据
+ 配置主要菜单是否显示
+ */
+/** 是否显示拷贝，默认是YES */
+@property (nonatomic) BOOL allowCopyMenuItem;
+/** 是否显示剪切，默认是YES */
+@property (nonatomic) BOOL allowCutMenuItem;
+/** 是否显示查询，默认是YES */
+@property (nonatomic) BOOL allowDefineMenuItem;
+/** 是否显示粘贴板，默认是YES */
+@property (nonatomic) BOOL allowPasteMenuItem;
+/** 是否显示选中，默认是YES */
+@property (nonatomic) BOOL allowSelectMenuItem;
+/** 是否显示全选，默认是YES */
+@property (nonatomic) BOOL allowSelectAllMenuItem;
+/** 是否显示删除，默认是YES */
+@property (nonatomic) BOOL allowDeleteMenuItem;
+//end
 
 #pragma mark - Manage the undo and redo
 ///=============================================================================
