@@ -152,9 +152,10 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     NSMutableArray *_redoStack;
     NSRange _lastTypeRange;
   
-  // 有改动
-  NSArray * _menuItemTitles;
-  // end
+    // 有改动
+    NSArray * _menuItemTitles;
+    BOOL _isEffectiveLongPressSelect;
+    // end
     
     struct {
         unsigned int trackingGrabber : 2;       ///< YYTextGrabberDirection, current tracking grabber
@@ -413,6 +414,12 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 /// Update the `_selectedTextRange` to a single position by `_trackingPoint`.
 - (void)_updateTextRangeByTrackingCaret {
     if (!_state.trackingTouch) return;
+  
+    if (_isEffectiveLongPressSelect) {
+      YYTextRange *newRange = [YYTextRange rangeWithRange:NSMakeRange(0, _innerText.length)];;
+      _trackingRange = newRange;
+      return;
+    }
     
     CGPoint trackingPoint = [self _convertPointToLayout:_trackingPoint];
     YYTextPosition *newPos = [_innerLayout closestPositionToPoint:trackingPoint];
@@ -433,6 +440,12 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 /// Update the `_selectedTextRange` to a new range by `_trackingPoint` and `_state.trackingGrabber`.
 - (void)_updateTextRangeByTrackingGrabber {
     if (!_state.trackingTouch || !_state.trackingGrabber) return;
+  
+  if (_isEffectiveLongPressSelect) {
+    YYTextRange *newRange = [YYTextRange rangeWithRange:NSMakeRange(0, _innerText.length)];;
+    _trackingRange = newRange;
+    return;
+  }
     
     BOOL isStart = _state.trackingGrabber == kStart;
     CGPoint magPoint = _trackingPoint;
@@ -455,6 +468,13 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 /// Update the `_selectedTextRange` to a new range/position by `_trackingPoint`.
 - (void)_updateTextRangeByTrackingPreSelect {
     if (!_state.trackingTouch) return;
+  
+  if (_isEffectiveLongPressSelect) {
+    YYTextRange *newRange = [YYTextRange rangeWithRange:NSMakeRange(0, _innerText.length)];;
+    _trackingRange = newRange;
+    return;
+  }
+  
     YYTextRange *newRange = [self _getClosestTokenRangeAtPoint:_trackingPoint];
     _trackingRange = newRange;
 }
@@ -462,6 +482,10 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 /// Show or update `_magnifierCaret` based on `_trackingPoint`, and hide `_magnifierRange`.
 - (void)_showMagnifierCaret {
     if (YYTextIsAppExtension()) return;
+  
+    if (_isEffectiveLongPressSelect) {
+      return;
+    }
     
     if (_state.showingMagnifierRanged) {
         _state.showingMagnifierRanged = NO;
@@ -885,9 +909,16 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
                 self.panGestureRecognizer.enabled = NO;
                 _state.trackingPreSelect = YES;
                 _state.selectedWithoutEdit = NO;
-                [self _updateTextRangeByTrackingPreSelect];
-                [self _updateSelectionView];
+              
+              [self _updateTextRangeByTrackingPreSelect];
+              [self _updateSelectionView];
+              if (!_isEffectiveLongPressSelect) {
                 [self _showMagnifierCaret];
+              } else {
+                _state.selectedWithoutEdit = YES;
+                [self _showMenu];
+              }
+              
             }
         }
     }
@@ -2033,7 +2064,10 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   _allowSelectMenuItem = YES;
   _allowSelectAllMenuItem = YES;
   _allowDeleteMenuItem = YES;
+  _allowLongPressSelectAllGestureRecognizer = NO;
+  _isEffectiveLongPressSelect = NO;
 }
+//end
 
 #pragma mark - Public
 
@@ -2511,9 +2545,29 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 #pragma mark - Override UIResponder
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+   NSLog(@"开始滑动");
+  
+  if (self.allowLongPressSelectAllGestureRecognizer && _state.selectedWithoutEdit == NO) {
+    _isEffectiveLongPressSelect = YES;
+  } else {
+    _isEffectiveLongPressSelect = NO;
+  }
+
     [self _updateIfNeeded];
     UITouch *touch = touches.anyObject;
     CGPoint point = [touch locationInView:_containerView];
+  
+  if (self.isScrollEnabled == NO) {
+    if (point.y > _containerView.frame.size.height - self.font.pointSize / 2.0) {
+      point.y = _containerView.frame.size.height - self.font.pointSize / 2.0;
+    }
+    if (point.y < self.font.pointSize / 2.0) {
+      point.y = self.font.pointSize / 2.0;
+    }
+    if (point.y < 0) {
+      point.y = 0;
+    }
+  }
     
     _touchBeganTime = _trackingTime = touch.timestamp;
     _touchBeganPoint = _trackingPoint = point;
@@ -2562,9 +2616,22 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
+   NSLog(@"正在滑动");
     [self _updateIfNeeded];
     UITouch *touch = touches.anyObject;
     CGPoint point = [touch locationInView:_containerView];
+  
+  if (self.isScrollEnabled == NO) {
+    if (point.y > _containerView.frame.size.height - self.font.pointSize / 2.0) {
+      point.y = _containerView.frame.size.height - self.font.pointSize / 2.0;
+    }
+    if (point.y < self.font.pointSize / 2.0) {
+      point.y = self.font.pointSize / 2.0;
+    }
+    if (point.y < 0) {
+      point.y = 0;
+    }
+  }
     
     _trackingTime = touch.timestamp;
     _trackingPoint = point;
@@ -2640,10 +2707,23 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+  NSLog(@"结束滑动");
     [self _updateIfNeeded];
     
     UITouch *touch = touches.anyObject;
     CGPoint point = [touch locationInView:_containerView];
+  
+  if (self.isScrollEnabled == NO) {
+    if (point.y > _containerView.frame.size.height - self.font.pointSize / 2.0) {
+      point.y = _containerView.frame.size.height - self.font.pointSize / 2.0;
+    }
+    if (point.y < self.font.pointSize / 2.0) {
+      point.y = self.font.pointSize / 2.0;
+    }
+    if (point.y < 0) {
+      point.y = 0;
+    }
+  }
     
     _trackingTime = touch.timestamp;
     _trackingPoint = point;
@@ -2747,10 +2827,24 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self _endTouchTracking];
-    [self _hideMenu];
+  NSLog(@"取消滑动");
+  if (_trackingRange && (![_trackingRange isEqual:_selectedTextRange] || _state.trackingPreSelect)) {
+    if (![_trackingRange isEqual:_selectedTextRange]) {
+      [_inputDelegate selectionWillChange:self];
+      _selectedTextRange = _trackingRange;
+      [_inputDelegate selectionDidChange:self];
+      [self _updateAttributesHolder];
+      [self _updateOuterProperties];
+    }
+    if (!_state.trackingGrabber && !_state.trackingPreSelect) {
+      [self _scrollRangeToVisible:_selectedTextRange];
+    }
+  }
+  
+  [self _endTouchTracking];
+  [self _hideMenu];
 
-    if (!_state.swallowTouch) [super touchesCancelled:touches withEvent:event];
+  if (!_state.swallowTouch) [super touchesCancelled:touches withEvent:event];
 }
 
 - (void)motionEnded:(UIEventSubtype)motion withEvent:(UIEvent *)event {

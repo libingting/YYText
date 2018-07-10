@@ -327,6 +327,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL allowSelectAllMenuItem;
 /** 是否显示删除，默认是YES */
 @property (nonatomic) BOOL allowDeleteMenuItem;
+/** 全部选中长按,开启长按选择全部手势 */
+@property (nonatomic) BOOL allowLongPressSelectAllGestureRecognizer;
 //end
 
 #pragma mark - Manage the undo and redo
