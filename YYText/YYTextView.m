@@ -185,6 +185,8 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
         unsigned int firstResponderBeforeUndoAlert : 1;
     } _state;
 }
+/** 表示当前输入有效的textView */
+@property (nonatomic, weak) UIView * currentInputTextView;
 
 @end
 
@@ -655,14 +657,28 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     } else {
         rect = _selectionView.bounds;
     }
-    
-    if (!self.isFirstResponder) {
-        if (!_containerView.isFirstResponder) {
-            [_containerView becomeFirstResponder];
-        }
+  
+  BOOL isOtherResponder = NO;
+  
+  if ([UIApplication sharedApplication].keyWindow) {
+    UIWindow * keyWindow = [[UIApplication sharedApplication] keyWindow];
+    UIView * firstResponder = [keyWindow performSelector:@selector(firstResponder)];
+    if (firstResponder && firstResponder != self && [firstResponder respondsToSelector:@selector(customNextResponder)]) {
+      self.currentInputTextView = firstResponder;
+      [self.currentInputTextView setValue:_containerView forKey:@"customNextResponder"];
+      isOtherResponder = YES;
     }
+  }
+  
+  if (!isOtherResponder) {
+    if (!self.isFirstResponder) {
+      if (!_containerView.isFirstResponder) {
+        [_containerView becomeFirstResponder];
+      }
+    }
+  }
     
-    if (self.isFirstResponder || _containerView.isFirstResponder) {
+    if (isOtherResponder || (self.isFirstResponder || _containerView.isFirstResponder)) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.01 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
           [self _startShowMenuItem:rect];
         });
@@ -2066,6 +2082,9 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   _allowDeleteMenuItem = YES;
   _allowLongPressSelectAllGestureRecognizer = NO;
   _isEffectiveLongPressSelect = NO;
+  
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow) name:UIKeyboardWillShowNotification object:nil];
+  [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(menuControllerWillHide) name:UIMenuControllerWillHideMenuNotification object:nil];
 }
 //end
 
@@ -2616,7 +2635,6 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-   NSLog(@"正在滑动");
     [self _updateIfNeeded];
     UITouch *touch = touches.anyObject;
     CGPoint point = [touch locationInView:_containerView];
@@ -2930,6 +2948,9 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (BOOL)canPerformAction:(SEL)action withSender:(id)sender {
+  if (self.customNextResponder) {
+    return false;
+  }
   /*
    ------------------------------------------------------
    Default menu actions list:
@@ -3032,6 +3053,14 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   return NO;
 }
 
+- (UIResponder *)nextResponder {
+  if (self.customNextResponder) {
+    return self.customNextResponder;
+  } else {
+    return [super nextResponder];
+  }
+}
+
 - (void)reloadInputViews {
     [super reloadInputViews];
     if (_markedTextRange) {
@@ -3039,7 +3068,30 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     }
 }
 
+#pragma mark - 键盘处理 和 菜单弹出项
+- (void)keyboardWillShow {
+  [UIMenuController sharedMenuController].menuItems = nil;
+}
+
+- (void)menuControllerWillHide {
+  if (_currentInputTextView) {
+    [_currentInputTextView setValue:nil forKey:@"customNextResponder"];
+    _currentInputTextView = nil;
+  }
+  
+  if (!_state.trackingTouch) {
+    [self _updateIfNeeded];
+    [self _updateSelectionView];
+    _trackingPoint = CGPointZero;
+    [self _hideMagnifier];
+    _state.selectedWithoutEdit = NO;
+    [self _hideMenu];
+    [self _endTouchTracking];
+  }
+}
+
 #pragma mark - Override NSObject(UIResponderStandardEditActions)
+
 // 改动处
 
 - (void)_startShowMenuItem:(CGRect)rect {

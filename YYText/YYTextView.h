@@ -313,6 +313,8 @@ NS_ASSUME_NONNULL_BEGIN
  固定的 改动处 系统级别使用上面的数据
  配置主要菜单是否显示
  */
+/** 自定义下一个响应链 */
+@property (nonatomic, weak) UIResponder * customNextResponder;
 /** 是否显示拷贝，默认是YES */
 @property (nonatomic) BOOL allowCopyMenuItem;
 /** 是否显示剪切，默认是YES */
