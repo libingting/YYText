@@ -354,6 +354,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     } else {
         [self _endSelectionDotFixTimer];
     }
+  [self findSuperScroll:self delayTouch:containsDot];
 }
 
 /// Update inner contains's size.
@@ -502,6 +503,21 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     } else {
         [[YYTextEffectWindow sharedWindow] moveMagnifier:_magnifierCaret];
     }
+}
+
+- (void)findSuperScroll:(UIView *)view delayTouch:(BOOL)delayTouch {
+  UIView *superView = view.superview;
+  if (superView == nil) { return; }
+  if ([superView isKindOfClass:[UIScrollView class]]) {
+    UIScrollView *scroll = (UIScrollView *)superView;
+    scroll.delaysContentTouches = delayTouch;
+    scroll.canCancelContentTouches = !delayTouch;
+    NSString *delayTouchDesc = delayTouch ? @"delaytouch 开" : @"delaytouch 关";
+    NSLog(delayTouchDesc);
+  }
+  else {
+    [self findSuperScroll:superView delayTouch:delayTouch];
+  }
 }
 
 /// Show or update `_magnifierRanged` based on `_trackingPoint`, and hide `_magnifierCaret`.
@@ -2564,8 +2580,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 #pragma mark - Override UIResponder
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-   NSLog(@"开始滑动");
-  
+//   NSLog(@"开始滑动");  
   if (self.allowLongPressSelectAllGestureRecognizer && _state.selectedWithoutEdit == NO) {
     _isEffectiveLongPressSelect = YES;
   } else {
@@ -2725,7 +2740,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-  NSLog(@"结束滑动");
+//  NSLog(@"结束滑动");
     [self _updateIfNeeded];
     
     UITouch *touch = touches.anyObject;
@@ -2845,7 +2860,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-  NSLog(@"取消滑动");
+//  NSLog(@"取消滑动");
   if (_trackingRange && (![_trackingRange isEqual:_selectedTextRange] || _state.trackingPreSelect)) {
     if (![_trackingRange isEqual:_selectedTextRange]) {
       [_inputDelegate selectionWillChange:self];
@@ -2981,7 +2996,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
    */
   // 有改动
   NSString *selString = NSStringFromSelector(action);
-  NSLog(@"函数名字:%@\n",selString);
+//  NSLog(@"函数名字:%@\n",selString);
   NSString *actionPrefix = @"_otherMenuItemIndex";
   UIMenuController *menu = [UIMenuController sharedMenuController];
   if ([selString hasPrefix:actionPrefix]) {
