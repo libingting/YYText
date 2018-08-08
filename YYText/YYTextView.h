@@ -50,8 +50,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)textView:(YYTextView *)textView didLongPressHighlight:(YYTextHighlight *)highlight inRange:(NSRange)characterRange rect:(CGRect)rect;
 
 /// 这里用于编辑 UIMenuController, 反回标题组合  改动处
-/** 这里为菜单展示在标准的UIMenuController */
+/** 这里为菜单展示在标准的UIMenuController 后置的菜单系统后置 */
 - (NSArray<NSString *>*)textView:(YYTextView *)textView menuController:(UIMenuController *)menu selectedTextRange:(YYTextRange *)range itemTitlesShowInView:(YYTextSelectionView *)view;
+/** 这里是系统菜单在自定义菜单的位置 */
+- (int)textViewSystemMenuIndexForCustomItems:(YYTextView *)textView;
 /** 选中某个菜单 */
 - (void)textView:(YYTextView *)textView menuController:(UIMenuController *)menu selectedTextRange:(YYTextRange *)range didSelectMenuItemTitle:(NSString *)itemTitle index:(int)index;
 /** 这里控制菜单是否展示出来在不同的情况下 */

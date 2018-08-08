@@ -2969,16 +2969,16 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   /*
    ------------------------------------------------------
    Default menu actions list:
-   cut:                                   Cut
-   copy:                                  Copy
-   select:                                Select
-   selectAll:                             Select All
-   paste:                                 Paste
-   delete:                                Delete
+   actionCut:                                   Cut
+   actionCopy:                                  Copy
+   actionSelect:                                Select
+   actionSelectAll:                             Select All
+   actionPaste:                                 Paste
+   actionDelete:                                Delete
    _promptForReplace:                     Replace...
    _transliterateChinese:                 简⇄繁
    _showTextStyleOptions:                 𝐁𝐼𝐔
-   _define:                               Define
+   __actionDefine:                               Define
    _addShortcut:                          Add...
    _accessibilitySpeak:                   Speak
    _accessibilitySpeakLanguageSelection:  Speak...
@@ -3012,19 +3012,19 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     
     NSString * actionTitle = nil;
     
-    if (action == @selector(select:)) {
+    if (action == @selector(actionSelect:)) {
       actionTitle = @"选中";
-    }  else if (action == @selector(selectAll:)) {
+    }  else if (action == @selector(actionSelectAll:)) {
       actionTitle = @"全选";
-    } else if (action == @selector(paste:)) {
+    } else if (action == @selector(actionPaste:)) {
       actionTitle = @"粘贴";
-    }  else if (action == @selector(cut:)) {
+    }  else if (action == @selector(actionCut:)) {
       actionTitle = @"剪切";
-    } else if (action == @selector(copy:)) {
+    } else if (action == @selector(actionCopy:)) {
       actionTitle = @"拷贝";
-    } else if (action == @selector(delete:)) {
+    } else if (action == @selector(actionDelete:)) {
       actionTitle = @"删除";
-    } else if ([selString hasSuffix:@"define:"] && [selString hasPrefix:@"_"]) {
+    } else if ([selString hasSuffix:@"actionDefine:"] && [selString hasPrefix:@"_"]) {
       actionTitle = @"查询";
     }
     
@@ -3034,32 +3034,32 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     }
     
     if (_selectedTextRange.asRange.length == 0) {
-      if (self.allowSelectMenuItem && action == @selector(select:)) {
+      if (self.allowSelectMenuItem && action == @selector(actionSelect:)) {
         return isShow && _innerText.length > 0;
       }
-      if (self.allowSelectAllMenuItem && action == @selector(selectAll:)) {
+      if (self.allowSelectAllMenuItem && action == @selector(actionSelectAll:)) {
         return isShow && _innerText.length > 0;
       }
-      if (self.allowPasteMenuItem && action == @selector(paste:)) {
+      if (self.allowPasteMenuItem && action == @selector(actionPaste:)) {
         return isShow && [self _isPasteboardContainsValidValue];
       }
     } else {
-      if (self.allowCutMenuItem && action == @selector(cut:)) {
+      if (self.allowCutMenuItem && action == @selector(actionCut:)) {
         return isShow && self.isFirstResponder && self.editable;
       }
-      if (self.allowCopyMenuItem && action == @selector(copy:)) {
+      if (self.allowCopyMenuItem && action == @selector(actionCopy:)) {
         return isShow;
       }
-      if (self.allowSelectAllMenuItem && action == @selector(selectAll:)) {
+      if (self.allowSelectAllMenuItem && action == @selector(actionSelectAll:)) {
         return isShow && _selectedTextRange.asRange.length < _innerText.length;
       }
-      if (self.allowDeleteMenuItem && action == @selector(delete:)) {
+      if (self.allowDeleteMenuItem && action == @selector(actionDelete:)) {
         return isShow && self.isFirstResponder && self.editable;
       }
-      if (self.allowPasteMenuItem && action == @selector(paste:)) {
+      if (self.allowPasteMenuItem && action == @selector(actionPaste:)) {
         return isShow && self.isFirstResponder && self.editable && [self _isPasteboardContainsValidValue];
       }
-      if (self.allowDefineMenuItem && [selString hasSuffix:@"define:"] && [selString hasPrefix:@"_"]) {
+      if (self.allowDefineMenuItem && [selString hasSuffix:@"actionDefine:"] && [selString hasPrefix:@"_"]) {
         return isShow && [self _getRootViewController] != nil;
       }
     }
@@ -3109,23 +3109,59 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 
 // 改动处
 
+- (NSArray<UIMenuItem*> *)systemMenuItems {
+  UIMenuItem *item1 = [[UIMenuItem alloc] initWithTitle:@"拷贝" action:@selector(actionCopy:)];
+  UIMenuItem *item2 = [[UIMenuItem alloc] initWithTitle:@"粘贴" action:@selector(actionPaste:)];
+  UIMenuItem *item3 = [[UIMenuItem alloc] initWithTitle:@"选中" action:@selector(actionSelect:)];
+  UIMenuItem *item4 = [[UIMenuItem alloc] initWithTitle:@"全选" action:@selector(actionSelectAll:)];
+  UIMenuItem *item5 = [[UIMenuItem alloc] initWithTitle:@"剪切" action:@selector(actionCut:)];
+  UIMenuItem *item6 = [[UIMenuItem alloc] initWithTitle:@"删除" action:@selector(actionDelete:)];
+  UIMenuItem *item7 = [[UIMenuItem alloc] initWithTitle:@"查询" action:@selector(_actionDefine:)];
+  return @[item1,item2,item3,item4,item5,item6,item7];
+}
+
 - (void)_startShowMenuItem:(CGRect)rect {
   UIMenuController *menu = [UIMenuController sharedMenuController];
   [menu setTargetRect:CGRectStandardize(rect) inView:_selectionView];
+  
+  NSMutableArray<NSString *>*titles = [NSMutableArray array];
+  
   if (self.delegate&&[self.delegate respondsToSelector:@selector(textView:menuController:selectedTextRange:itemTitlesShowInView:)]) {
-    NSArray<NSString *>*titles = [self.delegate textView:self menuController:menu selectedTextRange:_selectedTextRange itemTitlesShowInView:_selectionView];
-    _menuItemTitles = titles;
-    
-    NSMutableArray<UIMenuItem*> * array = [NSMutableArray array];
-    for (int i = 0; i< titles.count; i++) {
-      SEL s2 = NSSelectorFromString([NSString stringWithFormat:@"_otherMenuItemIndex%d:",i]);
-      UIMenuItem *item = [[UIMenuItem alloc] initWithTitle:titles[i] action:s2];
-      [array addObject:item];
+    NSArray * titlesTmp = [self.delegate textView:self menuController:menu selectedTextRange:_selectedTextRange itemTitlesShowInView:_selectionView];
+    if (titlesTmp) {
+      [titles addObjectsFromArray:titlesTmp];
     }
-    
-    [menu setMenuItems:array];
   }
+  
+  _menuItemTitles = titles;
+  
+  NSMutableArray<UIMenuItem*> * array = [NSMutableArray array];
+  for (int i = 0; i< titles.count; i++) {
+    SEL s2 = NSSelectorFromString([NSString stringWithFormat:@"_otherMenuItemIndex%d:",i]);
+    UIMenuItem *item = [[UIMenuItem alloc] initWithTitle:titles[i] action:s2];
+    [array addObject:item];
+  }
+  
+  int systemIndex = 0;
+  
+  if (self.delegate&&[self.delegate respondsToSelector:@selector(textViewSystemMenuIndexForCustomItems:)]) {
+    systemIndex = [self.delegate textViewSystemMenuIndexForCustomItems:self];
+  }
+  
+  NSArray * systemItems = [self systemMenuItems];
+  
+  if (array.count <= 0 || systemIndex >= array.count) {
+    [array addObjectsFromArray:systemItems];
+  } else {
+    NSMutableIndexSet *indexes = [NSMutableIndexSet indexSetWithIndexesInRange:NSMakeRange(systemIndex, systemItems.count)];
+    [array insertObjects:systemItems atIndexes:indexes];
+  }
+  
+  [menu setMenuItems:array];
+  
   [menu update];
+  
+  
   if (!_state.showingMenu || !menu.menuVisible) {
     _state.showingMenu = YES;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -3195,7 +3231,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 //end
 
-- (void)cut:(id)sender {
+- (void)actionCut:(id)sender {
     [self _endTouchTracking];
     if (_selectedTextRange.asRange.length == 0) return;
     
@@ -3205,7 +3241,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     [self replaceRange:_selectedTextRange withText:@""];
 }
 
-- (void)delete:(id)sender {
+- (void)actionDelete:(id)sender {
   [self _endTouchTracking];
   if (_selectedTextRange.asRange.length == 0) return;
   [self _saveToUndoStack];
@@ -3213,12 +3249,12 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   [self replaceRange:_selectedTextRange withText:@""];
 }
 
-- (void)copy:(id)sender {
+- (void)actionCopy:(id)sender {
     [self _endTouchTracking];
     [self _copySelectedTextToPasteboard];
 }
 
-- (void)paste:(id)sender {
+- (void)actionPaste:(id)sender {
     [self _endTouchTracking];
     UIPasteboard *p = [UIPasteboard generalPasteboard];
     NSAttributedString *atr = nil;
@@ -3307,7 +3343,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     }
 }
 
-- (void)select:(id)sender {
+- (void)actionSelect:(id)sender {
     [self _endTouchTracking];
     
     if (_selectedTextRange.asRange.length > 0 || _innerText.length == 0) return;
@@ -3325,7 +3361,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     [self _showMenu];
 }
 
-- (void)selectAll:(id)sender {
+- (void)actionSelectAll:(id)sender {
     _trackingRange = nil;
     [_inputDelegate selectionWillChange:self];
     _selectedTextRange = [YYTextRange rangeWithRange:NSMakeRange(0, _innerText.length)];
@@ -3339,7 +3375,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 
-- (void)_define:(id)sender {
+- (void)_actionDefine:(id)sender {
     [self _hideMenu];
     
     NSString *string = [_innerText yy_plainTextForRange:_selectedTextRange.asRange];
