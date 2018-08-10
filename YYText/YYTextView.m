@@ -510,10 +510,14 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   if (superView == nil) { return; }
   if ([superView isKindOfClass:[UIScrollView class]]) {
     UIScrollView *scroll = (UIScrollView *)superView;
-    scroll.delaysContentTouches = delayTouch;
-    scroll.canCancelContentTouches = !delayTouch;
-    NSString *delayTouchDesc = delayTouch ? @"delaytouch 开" : @"delaytouch 关";
-    NSLog(delayTouchDesc);
+    if (scroll.delaysContentTouches != delayTouch) {
+      scroll.delaysContentTouches = delayTouch;
+    }
+    if(scroll.canCancelContentTouches != !delayTouch) {
+      scroll.canCancelContentTouches = !delayTouch;
+    }
+    //NSString *delayTouchDesc = delayTouch ? @"delaytouch 开" : @"delaytouch 关";
+    //NSLog(delayTouchDesc);
   }
   else {
     [self findSuperScroll:superView delayTouch:delayTouch];
