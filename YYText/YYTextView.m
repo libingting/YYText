@@ -3233,6 +3233,13 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     [self.delegate textView:self menuController:[UIMenuController sharedMenuController] selectedTextRange:_selectedTextRange didSelectMenuItemTitle:_menuItemTitles[9] index:9];
   }
 }
+
+- (void)_otherMenuItemIndex10:(id)sender {
+  if (self.delegate && [self.delegate respondsToSelector:@selector(textView:menuController:selectedTextRange:didSelectMenuItemTitle:index:)]) {
+    [self.delegate textView:self menuController:[UIMenuController sharedMenuController] selectedTextRange:_selectedTextRange didSelectMenuItemTitle:_menuItemTitles[10] index:10];
+  }
+}
+
 //end
 
 - (void)actionCut:(id)sender {
