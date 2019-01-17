@@ -335,6 +335,19 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL allowLongPressSelectAllGestureRecognizer;
 //end
 
+/// 是否自定义菜单UI
+- (BOOL)customMenuViewSupport;
+/// 打开菜单
+- (void)customMenuViewOpenTitles:(NSArray<UIMenuItem *>*)titles targetView:(UIView *)target targetRect:(CGRect)rect;
+/// 更新菜单
+- (void)customMenuViewUpdateTitles:(NSArray<UIMenuItem *>*)titles targetRect:(CGRect)rect;
+/// 显示菜单
+- (BOOL)customMenuViewOnDisplay;
+/// 自定义菜单关闭
+- (void)customMenuViewClose;
+/// 重置
+- (void)reset;
+
 #pragma mark - Manage the undo and redo
 ///=============================================================================
 /// @name Manage the undo and redo

@@ -707,16 +707,19 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 
 /// Hide the UIMenuController.
 - (void)_hideMenu {
-    if (_state.showingMenu) {
-        _state.showingMenu = NO;
-        UIMenuController *menu = [UIMenuController sharedMenuController];
-        [menu setMenuVisible:NO animated:YES];
+  if (_state.showingMenu) {
+    _state.showingMenu = NO;
+    UIMenuController *menu = [UIMenuController sharedMenuController];
+    [menu setMenuVisible:NO animated:YES];
+    if ([self customMenuViewSupport]) {
+      [self customMenuViewClose];
     }
-    if (_containerView.isFirstResponder) {
-        _state.ignoreFirstResponder = YES;
-        [_containerView resignFirstResponder]; // it will call [self becomeFirstResponder], ignore it temporary.
-        _state.ignoreFirstResponder = NO;
-    }
+  }
+  if (_containerView.isFirstResponder) {
+    _state.ignoreFirstResponder = YES;
+    [_containerView resignFirstResponder]; // it will call [self becomeFirstResponder], ignore it temporary.
+    _state.ignoreFirstResponder = NO;
+  }
 }
 
 /// Show highlight layout based on `_highlight` and `_highlightRange`
@@ -1366,10 +1369,12 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 
 /// Update the text view state when pasteboard changed.
 - (void)_pasteboardChanged {
-    if (_state.showingMenu) {
-        UIMenuController *menu = [UIMenuController sharedMenuController];
-        [menu update];
+  if (_state.showingMenu) {
+    UIMenuController *menu = [UIMenuController sharedMenuController];
+    if (![self customMenuViewSupport]) {
+      [menu update];
     }
+  }
 }
 
 /// Whether the position is valid (not out of bounds).
@@ -2966,6 +2971,22 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     return resign;
 }
 
+/// 重置状态
+- (void)reset {
+  if (self.isFirstResponder) {
+    [self resignFirstResponder];
+  } else {
+    _state.selectedWithoutEdit = NO;
+    if ([self _shouldDetectText]) {
+      [self _update];
+    }
+    [self _endTouchTracking];
+    [self _hideMenu];
+    [self _updateIfNeeded];
+    [self _updateSelectionView];
+  }
+}
+
 - (BOOL)canPerformAction:(SEL)action withSender:(id)sender {
   if (self.customNextResponder) {
     return false;
@@ -3125,8 +3146,13 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)_startShowMenuItem:(CGRect)rect {
+  
+  CGRect targetRect = CGRectStandardize(rect);
+  
   UIMenuController *menu = [UIMenuController sharedMenuController];
-  [menu setTargetRect:CGRectStandardize(rect) inView:_selectionView];
+  if (![self customMenuViewSupport]) {
+   [menu setTargetRect: targetRect inView:_selectionView];
+  }
   
   NSMutableArray<NSString *>*titles = [NSMutableArray array];
   
@@ -3139,6 +3165,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   
   _menuItemTitles = titles;
   
+  /// 所有菜单事件
   NSMutableArray<UIMenuItem*> * array = [NSMutableArray array];
   for (int i = 0; i< titles.count; i++) {
     SEL s2 = NSSelectorFromString([NSString stringWithFormat:@"_otherMenuItemIndex%d:",i]);
@@ -3152,8 +3179,10 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     systemIndex = [self.delegate textViewSystemMenuIndexForCustomItems:self];
   }
   
+  /// 系统事件
   NSArray * systemItems = [self systemMenuItems];
   
+  /// 所有的菜单
   if (array.count <= 0 || systemIndex >= array.count) {
     [array addObjectsFromArray:systemItems];
   } else {
@@ -3161,15 +3190,30 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     [array insertObjects:systemItems atIndexes:indexes];
   }
   
-  [menu setMenuItems:array];
+  /// 所有菜单名字
+  NSMutableArray <UIMenuItem *>* tits = [NSMutableArray array];
+  for (UIMenuItem * item in array) {
+    if ([self canPerformAction:item.action withSender:self]) {
+      [tits addObject:item];
+    }
+  }
   
-  [menu update];
+  /// 更新内容
+  if (![self customMenuViewSupport]) {
+    [menu setMenuItems:array];
+    [menu update];
+  } else {
+    [self customMenuViewUpdateTitles:tits targetRect:targetRect];
+  }
   
-  
-  if (!_state.showingMenu || !menu.menuVisible) {
+  if (!_state.showingMenu || ((![self customMenuViewSupport])&&(!menu.menuVisible)) || (([self customMenuViewSupport])&&(![self customMenuViewOnDisplay]))) {
     _state.showingMenu = YES;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-      [menu setMenuVisible:YES animated:YES];
+      if (![self customMenuViewSupport]) {
+        [menu setMenuVisible:YES animated:YES];
+      } else {
+        [self customMenuViewOpenTitles:tits targetView:_selectionView targetRect:targetRect];
+      }
     });
   }
 }
@@ -3238,6 +3282,27 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   if (self.delegate && [self.delegate respondsToSelector:@selector(textView:menuController:selectedTextRange:didSelectMenuItemTitle:index:)]) {
     [self.delegate textView:self menuController:[UIMenuController sharedMenuController] selectedTextRange:_selectedTextRange didSelectMenuItemTitle:_menuItemTitles[10] index:10];
   }
+}
+
+#pragma mark - 菜单部分
+- (BOOL)customMenuViewSupport {
+  return NO;
+}
+
+- (void)customMenuViewOpenTitles:(NSArray<UIMenuItem *>*) titles targetView:(UIView *)target  targetRect:(CGRect)rect {
+  
+}
+
+- (void)customMenuViewUpdateTitles:(NSArray<UIMenuItem *>*) titles  targetRect:(CGRect)rect {
+  
+}
+
+- (BOOL)customMenuViewOnDisplay {
+  return NO;
+}
+
+- (void)customMenuViewClose {
+  
 }
 
 //end
