@@ -3326,8 +3326,8 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)actionCopy:(id)sender {
-    [self _endTouchTracking];
-    [self _copySelectedTextToPasteboard];
+  [self _endTouchTracking];
+  [self _copySelectedTextToPasteboard];
 }
 
 - (void)actionPaste:(id)sender {
