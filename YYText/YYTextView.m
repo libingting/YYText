@@ -3046,7 +3046,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     }  else if (action == @selector(actionCut:)) {
       actionTitle = @"剪切";
     } else if (action == @selector(actionCopy:)) {
-      actionTitle = @"拷贝";
+      actionTitle = @"复制";
     } else if (action == @selector(actionDelete:)) {
       actionTitle = @"删除";
     } else if ([selString hasSuffix:@"actionDefine:"] && [selString hasPrefix:@"_"]) {
@@ -3135,7 +3135,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 // 改动处
 
 - (NSArray<UIMenuItem*> *)systemMenuItems {
-  UIMenuItem *item1 = [[UIMenuItem alloc] initWithTitle:@"拷贝" action:@selector(actionCopy:)];
+  UIMenuItem *item1 = [[UIMenuItem alloc] initWithTitle:@"复制" action:@selector(actionCopy:)];
   UIMenuItem *item2 = [[UIMenuItem alloc] initWithTitle:@"粘贴" action:@selector(actionPaste:)];
   UIMenuItem *item3 = [[UIMenuItem alloc] initWithTitle:@"选中" action:@selector(actionSelect:)];
   UIMenuItem *item4 = [[UIMenuItem alloc] initWithTitle:@"全选" action:@selector(actionSelectAll:)];
