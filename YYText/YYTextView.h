@@ -317,6 +317,8 @@ NS_ASSUME_NONNULL_BEGIN
  */
 /** 自定义下一个响应链 */
 @property (nonatomic, weak) UIResponder * customNextResponder;
+/** 允许自定义响应链 */
+@property (nonatomic) BOOL allowCustomNextResponder;
 /** 是否显示拷贝，默认是YES */
 @property (nonatomic) BOOL allowCopyMenuItem;
 /** 是否显示剪切，默认是YES */

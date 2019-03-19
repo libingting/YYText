@@ -680,7 +680,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   
   BOOL isOtherResponder = NO;
   
-  if ([UIApplication sharedApplication].keyWindow) {
+  if ([UIApplication sharedApplication].keyWindow && (_allowCustomNextResponder || [self customMenuViewSupport])) {
     UIWindow * keyWindow = [[UIApplication sharedApplication] keyWindow];
     UIView * firstResponder = [keyWindow performSelector:@selector(firstResponder)];
     if (firstResponder && firstResponder != self && [firstResponder respondsToSelector:@selector(customNextResponder)]) {
@@ -2107,6 +2107,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
   _allowDeleteMenuItem = YES;
   _allowLongPressSelectAllGestureRecognizer = NO;
   _isEffectiveLongPressSelect = NO;
+  _allowCustomNextResponder = NO;
   
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow) name:UIKeyboardWillShowNotification object:nil];
   [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(menuControllerWillHide) name:UIMenuControllerWillHideMenuNotification object:nil];
@@ -3114,7 +3115,7 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 }
 
 - (void)menuControllerWillHide {
-  if (_currentInputTextView) {
+  if (_currentInputTextView && (_allowCustomNextResponder || [self customMenuViewSupport])) {
     [_currentInputTextView setValue:nil forKey:@"customNextResponder"];
     _currentInputTextView = nil;
   }
